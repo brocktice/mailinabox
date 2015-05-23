@@ -22,10 +22,12 @@ source /etc/mailinabox.conf # load global vars
 
 apt_install \
 	dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd dovecot-sqlite sqlite3 \
-	dovecot-sieve dovecot-managesieved
+	dovecot-sieve dovecot-managesieved dovecot-solr solr-tomcat
 
 # The `dovecot-imapd`, `dovecot-pop3d`, and `dovecot-lmtpd` packages automatically
 # enable IMAP, POP and LMTP protocols.
+
+# the dovecot-solr and solr-tomcat packages enable full-text search
 
 # Set basic daemon options.
 
@@ -155,6 +157,24 @@ EOF
 # permission later.
 cp conf/sieve-spam.txt /etc/dovecot/sieve-spam.sieve
 sievec /etc/dovecot/sieve-spam.sieve
+
+# ### Solr
+
+# Copy the template solr-schema.xml from the dovecot doc directory
+cp /usr/share/doc/dovecot-core/dovecot/solr-schema.xml /etc/solr/conf/schema.xml
+
+# Restart tomcat so this will take effect
+/etc/init.d/tomcat6 restart
+
+# Enable the Dovecot fts and fts_solr plugins which enable full-text IMAP search using Solr
+sed -i "s/#mail_plugins = .*/mail_plugins = \$mail_plugins fts fts_solr/" /etc/dovecot/conf.d/10-mail.conf
+
+cat >> /etc/dovecot/conf.d/90-plugin.conf <<EOF;
+plugin{
+  fts = solr
+  fts_solr = break-imap-search url=http://localhost:8080/solr/
+}
+EOF
 
 # PERMISSIONS
 
