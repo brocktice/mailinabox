@@ -171,11 +171,28 @@ sed -i "s/#mail_plugins = .*/mail_plugins = \$mail_plugins fts fts_solr/" /etc/d
 
 # create a separate plugin file for the fts so we can overwrite every refresh and not worry about other changes
 cat > /etc/dovecot/conf.d/90-fts-plugin.conf <<EOF;
-plugin{
+plugin {
   fts = solr
   fts_solr = break-imap-search url=http://localhost:8080/solr/
 }
 EOF
+
+# Add cron jobs to keep the solr indices up to date
+# per http://wiki2.dovecot.org/Plugins/FTS/Solr
+cat > /etc/cron.daily/mailinabox-solr-optimize << EOF;
+#!/bin/bash
+# Mail-in-a-Box
+curl http://localhost:8080/solr/update?optimize=true &> /dev/null
+EOF
+chmod +x /etc/cron.daily/mailinabox-solr-optimize
+
+cat > /etc/cron.hourly/mailinabox-solr-commit << EOF;
+#!/bin/bash
+# Mail-in-a-Box
+curl http://localhost:8080/solr/update?commit=true &> /dev/null
+EOF
+chmod +x /etc/cron.hourly/mailinabox-solr-commit
+
 
 # PERMISSIONS
 
