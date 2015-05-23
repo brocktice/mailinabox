@@ -169,7 +169,8 @@ cp /usr/share/doc/dovecot-core/dovecot/solr-schema.xml /etc/solr/conf/schema.xml
 # Enable the Dovecot fts and fts_solr plugins which enable full-text IMAP search using Solr
 sed -i "s/#mail_plugins = .*/mail_plugins = \$mail_plugins fts fts_solr/" /etc/dovecot/conf.d/10-mail.conf
 
-cat >> /etc/dovecot/conf.d/90-plugin.conf <<EOF;
+# create a separate plugin file for the fts so we can overwrite every refresh and not worry about other changes
+cat > /etc/dovecot/conf.d/90-fts-plugin.conf <<EOF;
 plugin{
   fts = solr
   fts_solr = break-imap-search url=http://localhost:8080/solr/
