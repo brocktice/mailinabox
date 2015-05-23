@@ -153,7 +153,8 @@
 -Package: dovecot-gssapi
 +Package: dovecot-lucene
  Architecture: any
- Depends: ${shlibs:Depends}, ${misc:Depends}, dovecot-core (= ${binary:Version})
+-Depends: ${shlibs:Depends}, ${misc:Depends}, dovecot-core (= ${binary:Version})
++Depends: ${shlibs:Depends}, ${misc:Depends}, dovecot-core (>= 1:2.2.9-1ubuntu2.1)
 -Description: secure POP3/IMAP server - GSSAPI support
 +Description: secure POP3/IMAP server - Lucene support
   Dovecot is a mail server whose major goals are security and extreme

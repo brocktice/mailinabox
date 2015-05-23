@@ -37,18 +37,21 @@ build_dovecot_lucene:
 	# Patch it so that we build dovecot-lucene (and nothing else).
 	patch -p1 -d /tmp/build/dovecot-2.2.9 < dovecot_lucene.diff
 
+	# Update the changelog
+	(cd /tmp/build/dovecot-2.2.9; DEBEMAIL="Brock Tice (launchpad) <brock@brocktice.com>" dch --distribution trusty --newversion 1:2.2.9-1ubuntu2.2~ppa1~trusty0 "Build lucene support for trusty")
+
 	# Build the source package.
 	(cd /tmp/build/dovecot-2.2.9; dpkg-buildpackage -S -us -uc -nc)
 
 	# Sign the packages.
-	#debsign /tmp/build/dovecot_2.2.9-1ubuntu2.1_amd64.changes
+	debsign -k 0x8545BF24 /tmp/build/dovecot_2.2.9-1ubuntu2.2~ppa1~trusty0_source.changes
 
 	# Upload it.
-	#dput ppa:mail-in-a-box/ppa /tmp/build/dovecot_2.2.9-1ubuntu2.1_amd64.changes
+	dput ppa:brock/mailinabox-brocktice /tmp/build/dovecot_2.2.9-1ubuntu2.2~ppa1~trusty0_source.changes
 
 	# TESTING BINARY PACKAGE
 	# Install build dependencies and build dependencies we've added in our patch,
 	# and then build the binary package.
-	#sudo apt-get build-dep -y dovecot
-	#sudo apt-get install libclucene-dev liblzma-dev libexttextcat-dev libstemmer-dev
-	#(cd /tmp/build/dovecot-2.2.9; dpkg-buildpackage -us -uc -nc)
+	sudo apt-get build-dep -y dovecot
+	sudo apt-get install libclucene-dev liblzma-dev libexttextcat-dev libstemmer-dev
+	(cd /tmp/build/dovecot-2.2.9; dpkg-buildpackage -us -uc -nc)
