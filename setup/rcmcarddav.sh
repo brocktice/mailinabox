@@ -23,9 +23,9 @@ cd $CURRDIR
 # ### Configure rcmcarddav
 cat > $CARDDAVCONF <<EOF;
 <?php
-\$prefs['Personal'] = array(
+\$prefs['ownCloud'] = array(
                    // required attributes
-                   'name'         =>  'Personal',
+                   'name'         =>  'ownCloud',
                    // will be substituted for the roundcube username
                    'username'     =>  '%u',
                    // will be substituted for the roundcube password
