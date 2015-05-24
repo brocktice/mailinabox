@@ -176,6 +176,3 @@ ufw_allow pop3s
 
 # Restart services.
 restart_service dovecot
-
-# for solr
-restart_service tomcat6
