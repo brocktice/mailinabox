@@ -14,6 +14,10 @@ CURRDIR=`pwd`
 git_clone $CARDDAVGIT master '' $CARDDAVDIR
 
 # ### Install composer
+
+# We need php5-curl for this
+apt_install php5-curl
+
 # This doesn't like hide_output so we keep things quiet the old fashioned way
 COMPOSERLOG=/tmp/rcmcarddav-composer-install.log
 cd $CARDDAVDIR
@@ -64,4 +68,6 @@ chmod -R a+X $RCMCONFIG
 chown -f -R www-data.www-data $CARDDAVDIR
 chown -f -R www-data.www-data $RCMCONFIG
 
-# Should be all set
+# Should be all set after a restart
+restart_service nginx
+
