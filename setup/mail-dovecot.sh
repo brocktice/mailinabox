@@ -163,9 +163,6 @@ sievec /etc/dovecot/sieve-spam.sieve
 # Copy the template solr-schema.xml from the dovecot doc directory
 cp /usr/share/doc/dovecot-core/dovecot/solr-schema.xml /etc/solr/conf/schema.xml
 
-# Restart tomcat so this will take effect
-/etc/init.d/tomcat6 restart
-
 # Enable the Dovecot fts and fts_solr plugins which enable full-text IMAP search using Solr
 sed -i "s/#mail_plugins = .*/mail_plugins = \$mail_plugins fts fts_solr/" /etc/dovecot/conf.d/10-mail.conf
 
@@ -214,3 +211,6 @@ ufw_allow pop3s
 
 # Restart services.
 restart_service dovecot
+
+# for solr
+restart_service tomcat6
