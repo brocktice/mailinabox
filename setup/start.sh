@@ -141,6 +141,7 @@ source setup/mail-users.sh
 source setup/dkim.sh
 # Can only use one of lucene and solr
 #source setup/lucene.sh
+source setup/solr.sh
 source setup/spamassassin.sh
 source setup/web.sh
 source setup/webmail.sh
