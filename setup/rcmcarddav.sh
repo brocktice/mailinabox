@@ -54,8 +54,11 @@ RCMSQLF=/home/user-data/mail/roundcube/roundcube.sqlite
 DBINIT=/usr/local/lib/roundcubemail/plugins/carddav/dbinit/sqlite3.sql
 DBMIG=/usr/local/lib/roundcubemail/plugins/carddav/dbmigrations/0000-dbinit/sqlite3.sql
 
+# restart nginx
+restart_service nginx
+
 # initialize roundcube database
-curl -sk https://${PRIMARY_HOSTNAME}/mail/index.php > /dev/null
+curl -sk https://${PRIMARY_HOSTNAME}/mail/index.php &> /tmp/roundcube_db_init.log
 
 # This may fail if we've already created the database, so discard output
 /usr/bin/sqlite3 $RCMSQLF < $DBINIT &> /dev/null
