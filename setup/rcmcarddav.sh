@@ -15,6 +15,10 @@ git_clone $CARDDAVGIT master '' $CARDDAVDIR
 
 # ### Install composer
 
+# initialize roundcube database
+export PRIVATE_IP
+curl -sk https://${PRIVATE_IP}/mail/index.php 2>&1 >> /tmp/roundcube_db_init.log
+
 # We need php5-curl for this
 apt_install php5-curl
 
@@ -50,12 +54,12 @@ EOF
 sed -ri "s@'vacation_sieve'\)@'vacation_sieve', 'carddav'\)@" $RCMCONFIG
 
 # Work around bug in db init code in rcmcarddav
-#RCMSQLF=/home/user-data/mail/roundcube/roundcube.sqlite
-#DBINIT=/usr/local/lib/roundcubemail/plugins/carddav/dbinit/sqlite3.sql
-#DBMIG=/usr/local/lib/roundcubemail/plugins/carddav/dbmigrations/0000-dbinit/sqlite3.sql
+RCMSQLF=/home/user-data/mail/roundcube/roundcube.sqlite
+DBINIT=/usr/local/lib/roundcubemail/plugins/carddav/dbinit/sqlite3.sql
+DBMIG=/usr/local/lib/roundcubemail/plugins/carddav/dbmigrations/0000-dbinit/sqlite3.sql
 
-# This may fail if we've already created the database, so discard output
-#/usr/bin/sqlite3 $RCMSQLF < $DBINIT &> /tmp/dbinit.log
+# This may fail if we've already created the database, so capture output
+/usr/bin/sqlite3 $RCMSQLF < $DBINIT &> /tmp/dbinit.log
 #/usr/bin/sqlite3 $RCMSQLF < $DBMIG &> /dev/null
 
 # Fix permissions.
