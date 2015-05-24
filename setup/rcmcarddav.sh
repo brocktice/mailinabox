@@ -46,20 +46,16 @@ cat > $CARDDAVCONF <<EOF;
 );
 EOF
 
-restart_service nginx
-echo "curl -sk https://${PRIVATE_IP}/mail/index.php" &> /tmp/roundcube_db_init.log
-curl -sk https://${PRIVATE_IP}/mail/index.php 2>&1 >> /tmp/roundcube_db_init.log
-
 # Enable plugin
 sed -ri "s@'vacation_sieve'\)@'vacation_sieve', 'carddav'\)@" $RCMCONFIG
 
 # Work around bug in db init code in rcmcarddav
-RCMSQLF=/home/user-data/mail/roundcube/roundcube.sqlite
-DBINIT=/usr/local/lib/roundcubemail/plugins/carddav/dbinit/sqlite3.sql
-DBMIG=/usr/local/lib/roundcubemail/plugins/carddav/dbmigrations/0000-dbinit/sqlite3.sql
+#RCMSQLF=/home/user-data/mail/roundcube/roundcube.sqlite
+#DBINIT=/usr/local/lib/roundcubemail/plugins/carddav/dbinit/sqlite3.sql
+#DBMIG=/usr/local/lib/roundcubemail/plugins/carddav/dbmigrations/0000-dbinit/sqlite3.sql
 
 # This may fail if we've already created the database, so discard output
-/usr/bin/sqlite3 $RCMSQLF < $DBINIT &> /tmp/dbinit.log
+#/usr/bin/sqlite3 $RCMSQLF < $DBINIT &> /tmp/dbinit.log
 #/usr/bin/sqlite3 $RCMSQLF < $DBMIG &> /dev/null
 
 # Fix permissions.
@@ -75,3 +71,6 @@ chown -f -R www-data.www-data $RCMCONFIG
 # Should be all set after a restart
 restart_service nginx
 
+# sleep and then initialize roundcube database
+/bin/sleep 3
+curl -sk https://${PRIVATE_IP}/mail/index.php 2>&1 >> /tmp/roundcube_db_init.log
