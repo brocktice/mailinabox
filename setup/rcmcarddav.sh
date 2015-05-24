@@ -56,7 +56,7 @@ DBMIG=/usr/local/lib/roundcubemail/plugins/carddav/dbmigrations/0000-dbinit/sqli
 
 # This may fail if we've already created the database, so discard output
 /usr/bin/sqlite3 $RCMSQLF < $DBINIT &> /dev/null
-/usr/bin/sqlite3 $RCMSQLF < $DBMIG &> /dev/null
+#/usr/bin/sqlite3 $RCMSQLF < $DBMIG &> /dev/null
 
 # Fix permissions.
 chmod -R 644 $CARDDAVDIR
