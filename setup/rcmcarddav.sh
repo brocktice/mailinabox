@@ -15,9 +15,10 @@ git_clone $CARDDAVGIT master '' $CARDDAVDIR
 
 # ### Install composer
 # This doesn't like hide_output so we keep things quiet the old fashioned way
+COMPOSERLOG=/tmp/rcmcarddav-composer-install.log
 cd $CARDDAVDIR
-curl -sS https://getcomposer.org/installer 2> /dev/null | php 2>&1 > /dev/null
-php composer.phar install 2> /dev/null | php 2>&1 > /dev/null
+curl -sS https://getcomposer.org/installer 2> $COMPOSERLOG | php 2>&1 >> $COMPOSERLOG
+php composer.phar install 2>> $COMPOSERLOG | php 2>&1 >> $COMPOSERLOG
 cd $CURRDIR
 
 # ### Configure rcmcarddav
@@ -43,6 +44,15 @@ EOF
 
 # Enable plugin
 sed -ri "s@'vacation_sieve'\)@'vacation_sieve', 'carddav'\)@" $RCMCONFIG
+
+# Work around bug in db init code in rcmcarddav
+RCMSQLF=/home/user-data/mail/roundcube/roundcube.sqlite
+DBINIT=/usr/local/lib/roundcubemail/plugins/carddav/dbinit/sqlite3.sql
+DBMIG=/usr/local/lib/roundcubemail/plugins/carddav/dbmigrations/0000-dbinit/sqlite3.sql
+
+# This may fail if we've already created the database, so discard output
+/usr/bin/sqlite3 $RCMSQLF < $DBINIT &> /dev/null
+/usr/bin/sqlite3 $RCMSQLF < $DBMIG &> /dev/null
 
 # Fix permissions.
 chmod -R 644 $CARDDAVDIR
