@@ -47,5 +47,5 @@ EOF
 chown -R mail:dovecot /etc/dovecot
 chmod -R o-rwx /etc/dovecot
 
-# Restart services to reload solr schema & dovecot plugins
+# Restart services to reload dovecot plugins
 restart_service dovecot
