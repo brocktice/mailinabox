@@ -143,6 +143,7 @@ source setup/lucene.sh
 source setup/spamassassin.sh
 source setup/web.sh
 source setup/webmail.sh
+source setup/rcmcarddav.sh
 source setup/owncloud.sh
 source setup/zpush.sh
 source setup/management.sh
@@ -158,6 +159,9 @@ tools/web_update
 
 # If there aren't any mail users yet, create one.
 source setup/firstuser.sh
+
+# Post-setup rcmcarddav db init
+source setup/rcmcarddav_dbinit.sh
 
 # Done.
 echo
