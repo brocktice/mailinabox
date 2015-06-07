@@ -24,7 +24,7 @@ def get_dns_zones(env):
 	# What domains should we create DNS zones for? Never create a zone for
 	# a domain & a subdomain of that domain.
 	domains = get_dns_domains(env)
-	
+
 	# Exclude domains that are subdomains of other domains we know. Proceed
 	# by looking at shorter domains first.
 	zone_domains = set()
@@ -49,7 +49,7 @@ def get_dns_zones(env):
 	zonefiles.sort(key = lambda zone : zone_order.index(zone[0]) )
 
 	return zonefiles
-	
+
 def do_dns_update(env, force=False):
 	# What domains (and their zone filenames) should we build?
 	domains = get_dns_domains(env)
@@ -57,13 +57,15 @@ def do_dns_update(env, force=False):
 
 	# Custom records to add to zones.
 	additional_records = list(get_custom_dns_config(env))
+	from web_update import get_default_www_redirects
+	www_redirect_domains = get_default_www_redirects(env)
 
 	# Write zone files.
 	os.makedirs('/etc/nsd/zones', exist_ok=True)
 	updated_domains = []
 	for i, (domain, zonefile) in enumerate(zonefiles):
 		# Build the records to put in the zone.
-		records = build_zone(domain, domains, additional_records, env)
+		records = build_zone(domain, domains, additional_records, www_redirect_domains, env)
 
 		# See if the zone has changed, and if so update the serial number
 		# and write the zone file.
@@ -126,7 +128,7 @@ def do_dns_update(env, force=False):
 
 ########################################################################
 
-def build_zone(domain, all_domains, additional_records, env, is_zone=True):
+def build_zone(domain, all_domains, additional_records, www_redirect_domains, env, is_zone=True):
 	records = []
 
 	# For top-level zones, define the authoritative name servers.
@@ -177,7 +179,7 @@ def build_zone(domain, all_domains, additional_records, env, is_zone=True):
 	subdomains = [d for d in all_domains if d.endswith("." + domain)]
 	for subdomain in subdomains:
 		subdomain_qname = subdomain[0:-len("." + domain)]
-		subzone = build_zone(subdomain, [], additional_records, env, is_zone=False)
+		subzone = build_zone(subdomain, [], additional_records, www_redirect_domains, env, is_zone=False)
 		for child_qname, child_rtype, child_value, child_explanation in subzone:
 			if child_qname == None:
 				child_qname = subdomain_qname
@@ -215,10 +217,13 @@ def build_zone(domain, all_domains, additional_records, env, is_zone=True):
 	has_rec_base = records
 	defaults = [
 		(None,  "A",    env["PUBLIC_IP"],       "Required. May have a different value. Sets the IP address that %s resolves to for web hosting and other services besides mail. The A record must be present but its value does not affect mail delivery." % domain),
-		("www", "A",    env["PUBLIC_IP"],       "Optional. Sets the IP address that www.%s resolves to, e.g. for web hosting." % domain),
 		(None,  "AAAA", env.get('PUBLIC_IPV6'), "Optional. Sets the IPv6 address that %s resolves to, e.g. for web hosting. (It is not necessary for receiving mail on this domain.)" % domain),
-		("www", "AAAA", env.get('PUBLIC_IPV6'), "Optional. Sets the IPv6 address that www.%s resolves to, e.g. for web hosting." % domain),
 	]
+	if "www." + domain in www_redirect_domains:
+		defaults += [
+			("www", "A",    env["PUBLIC_IP"],       "Optional. Sets the IP address that www.%s resolves to so that the box can provide a redirect to the parent domain." % domain),
+			("www", "AAAA", env.get('PUBLIC_IPV6'), "Optional. Sets the IPv6 address that www.%s resolves to so that the box can provide a redirect to the parent domain." % domain),
+		]
 	for qname, rtype, value, explanation in defaults:
 		if value is None or value.strip() == "": continue # skip IPV6 if not set
 		if not is_zone and qname == "www": continue # don't create any default 'www' subdomains on what are themselves subdomains
@@ -247,17 +252,17 @@ def build_zone(domain, all_domains, additional_records, env, is_zone=True):
 	# Append a DMARC record.
 	# Skip if the user has set a DMARC record already.
 	if not has_rec("_dmarc", "TXT", prefix="v=DMARC1; "):
-		records.append(("_dmarc", "TXT", 'v=DMARC1; p=quarantine', "Optional. Specifies that mail that does not originate from the box but claims to be from @%s is suspect and should be quarantined by the recipient's mail system." % domain))
+		records.append(("_dmarc", "TXT", 'v=DMARC1; p=quarantine', "Recommended. Specifies that mail that does not originate from the box but claims to be from @%s or which does not have a valid DKIM signature is suspect and should be quarantined by the recipient's mail system." % domain))
 
 	# For any subdomain with an A record but no SPF or DMARC record, add strict policy records.
 	all_resolvable_qnames = set(r[0] for r in records if r[1] in ("A", "AAAA"))
 	for qname in all_resolvable_qnames:
 		if not has_rec(qname, "TXT", prefix="v=spf1 "):
-			records.append((qname,  "TXT", 'v=spf1 a mx -all', "Prevents unauthorized use of this domain name for outbound mail by requiring outbound mail to originate from the indicated host(s)."))
+			records.append((qname,  "TXT", 'v=spf1 -all', "Recommended. Prevents use of this domain name for outbound mail by specifying that no servers are valid sources for mail from @%s. If you do send email from this domain name you should either override this record such that the SPF rule does allow the originating server, or, take the recommended approach and have the box handle mail for this domain (simply add any receiving alias at this domain name to make this machine treat the domain name as one of its mail domains)." % (qname + "." + domain)))
 		dmarc_qname = "_dmarc" + ("" if qname is None else "." + qname)
 		if not has_rec(dmarc_qname, "TXT", prefix="v=DMARC1; "):
-			records.append((dmarc_qname, "TXT", 'v=DMARC1; p=reject', "Prevents unauthorized use of this domain name for outbound mail by requiring a valid DKIM signature."))
-		
+			records.append((dmarc_qname, "TXT", 'v=DMARC1; p=reject', "Recommended. Prevents use of this domain name for outbound mail by specifying that the SPF rule should be honoured for mail from @%s." % (qname + "." + domain)))
+
 
 	# Sort the records. The None records *must* go first in the nsd zone file. Otherwise it doesn't matter.
 	records.sort(key = lambda rec : list(reversed(rec[0].split(".")) if rec[0] is not None else ""))
@@ -325,7 +330,7 @@ def build_sshfp_records():
 			# Lots of things can go wrong. Don't let it disturb the DNS
 			# zone.
 			pass
-	
+
 ########################################################################
 
 def write_nsd_zone(domain, zonefile, records, env, force):
@@ -435,7 +440,7 @@ def write_nsd_conf(zonefiles, additional_records, env):
 	# Write the list of zones to a configuration file.
 	nsd_conf_file = "/etc/nsd/zones.conf"
 	nsdconf = ""
-	
+
 	# Append the zones.
 	for domain, zonefile in zonefiles:
 		nsdconf += """
@@ -492,7 +497,7 @@ def sign_zone(domain, zonefile, env):
 	# a new .key file with a DNSSEC record for the specific domain. We
 	# can reuse the same key, but it won't validate without a DNSSEC
 	# record specifically for the domain.
-	# 
+	#
 	# Copy the .key and .private files to /tmp to patch them up.
 	#
 	# Use os.umask and open().write() to securely create a copy that only
@@ -691,8 +696,8 @@ def write_custom_dns_config(config, env):
 				if len(values) == 1:
 					values = values[0]
 				dns[qname][rtype] = values
-	
-	# Write.	
+
+	# Write.
 	config_yaml = rtyaml.dump(dns)
 	with open(os.path.join(env['STORAGE_ROOT'], 'dns/custom.yaml'), "w") as f:
 		f.write(config_yaml)
@@ -847,8 +852,10 @@ def build_recommended_dns(env):
 	domains = get_dns_domains(env)
 	zonefiles = get_dns_zones(env)
 	additional_records = list(get_custom_dns_config(env))
+	from web_update import get_default_www_redirects
+	www_redirect_domains = get_default_www_redirects(env)
 	for domain, zonefile in zonefiles:
-		records = build_zone(domain, domains, additional_records, env)
+		records = build_zone(domain, domains, additional_records, www_redirect_domains, env)
 
 		# remove records that we don't dislay
 		records = [r for r in records if r[3] is not False]

@@ -148,7 +148,7 @@ def perform_backup(full_backup):
 	old_backup_dir = os.path.join(backup_root, 'duplicity')
 	migrated_unencrypted_backup_dir = os.path.join(env["STORAGE_ROOT"], "migrated_unencrypted_backup")
 	if os.path.isdir(old_backup_dir):
-		# Move the old unencrpyted files to a new location outside of
+		# Move the old unencrypted files to a new location outside of
 		# the backup root so they get included in the next (new) backup.
 		# Then we'll delete them. Also so that they do not get in the
 		# way of duplicity doing a full backup on the first run after
@@ -180,8 +180,9 @@ def perform_backup(full_backup):
 	if len(passphrase) < 43: raise Exception("secret_key.txt's first line is too short!")
 	env_with_passphrase = { "PASSPHRASE" : passphrase }
 
-	# Update the backup mirror directory which mirrors the current
-	# STORAGE_ROOT (but excluding the backups themselves!).
+	# Run a backup of STORAGE_ROOT (but excluding the backups themselves!).
+	# --allow-source-mismatch is needed in case the box's hostname is changed
+	# after the first backup. See #396.
 	try:
 		shell('check_call', [
 			"/usr/bin/duplicity",
@@ -191,7 +192,8 @@ def perform_backup(full_backup):
 			"--volsize", "250",
 			"--gpg-options", "--cipher-algo=AES256",
 			env["STORAGE_ROOT"],
-			"file://" + backup_dir
+			"file://" + backup_dir,
+                        "--allow-source-mismatch"
 			],
 			env_with_passphrase)
 	finally:

@@ -1,27 +1,35 @@
+POSTGREY_VERSION=1.35-1+miab1
+DOVECOT_VERSION=2.2.9-1ubuntu2.1+miab1
+
 all: clean build_postgrey build_dovecot_lucene
 
 clean:
 	# Clean.
 	rm -rf /tmp/build
-
-	# Prepare to build source packages.
 	mkdir -p /tmp/build
 
-build_postgrey:
-	# Download our fork of the Debian postgrey package.
-	git clone https://github.com/mail-in-a-box/postgrey /tmp/build/postgrey
+build_postgrey: clean
+	# Download the latest Debian postgrey package. It is ahead of Ubuntu,
+	# and we might as well jump ahead.
+	git clone git://git.debian.org/git/collab-maint/postgrey.git /tmp/build/postgrey
 
 	# Download the corresponding upstream package.
 	wget -O /tmp/build/postgrey_1.35.orig.tar.gz http://postgrey.schweikert.ch/pub/postgrey-1.35.tar.gz
+
+	# Add our source patch to the debian packaging listing.
+	cp postgrey_sources.diff /tmp/build/postgrey/debian/patches/mailinabox
+
+	# Patch the packaging to give it a new version.
+	patch -p1 -d /tmp/build/postgrey < postgrey.diff
 
 	# Build the source package.
 	(cd /tmp/build/postgrey; dpkg-buildpackage -S -us -uc -nc)
 
 	# Sign the packages.
-	debsign /tmp/build/postgrey_1.35-1miab1_source.changes
+	debsign /tmp/build/postgrey_$(POSTGREY_VERSION)_source.changes
 
 	# Upload to PPA.
-	dput ppa:mail-in-a-box/ppa /tmp/build/postgrey_1.35-1miab1_source.changes
+	dput ppa:mail-in-a-box/ppa /tmp/build/postgrey_$(POSTGREY_VERSION)_source.changes
 
 	# Clear the intermediate files.
 	rm -rf /tmp/build/postgrey
@@ -30,7 +38,7 @@ build_postgrey:
 	#sudo apt-get build-dep -y postgrey
 	#(cd /tmp/build/postgrey; dpkg-buildpackage -us -uc -nc)
 
-build_dovecot_lucene:
+build_dovecot_lucene: clean
 	# Get the upstream source.
 	(cd /tmp/build; apt-get source dovecot)
 
@@ -44,10 +52,10 @@ build_dovecot_lucene:
 	(cd /tmp/build/dovecot-2.2.9; dpkg-buildpackage -S -us -uc -nc)
 
 	# Sign the packages.
-	debsign -k 0x8545BF24 /tmp/build/dovecot_2.2.9-1ubuntu2.2~ppa1~trusty0_source.changes
+	debsign /tmp/build/dovecot_$(DOVECOT_VERSION)_source.changes
 
 	# Upload it.
-	dput ppa:brock/mailinabox-brocktice /tmp/build/dovecot_2.2.9-1ubuntu2.2~ppa1~trusty0_source.changes
+	dput ppa:mail-in-a-box/ppa /tmp/build/dovecot_$(DOVECOT_VERSION)_source.changes
 
 	# TESTING BINARY PACKAGE
 	# Install build dependencies and build dependencies we've added in our patch,

@@ -32,8 +32,11 @@ def validate_email(email, mode=None):
 		# unusual characters in the address. Bah. Also note that since
 		# the mailbox path name is based on the email address, the address
 		# shouldn't be absurdly long and must not have a forward slash.
+		# Our database is case sensitive (oops), which affects mail delivery
+		# (Postfix always queries in lowercase?), so also only permit lowercase
+		# letters.
 		if len(email) > 255: return False
-		if re.search(r'[^\@\.a-zA-Z0-9_\-]+', email):
+		if re.search(r'[^\@\.a-z0-9_\-]+', email):
 			return False
 
 	# Everything looks good.
@@ -135,7 +138,7 @@ def get_mail_users_ex(env, with_archived=False, with_slow_info=False):
 				mbox = os.path.join(root, domain, user)
 				if email in active_accounts: continue
 				user = {
-					"email": email, 
+					"email": email,
 					"privileges": "",
 					"status": "inactive",
 					"mailbox": mbox,
@@ -208,7 +211,7 @@ def get_mail_aliases_ex(env):
 	for source, destination in get_mail_aliases(env):
 		# get alias info
 		domain = get_domain(source)
-		required = ((source in required_aliases) or (source == get_system_administrator(env)))
+		required = (source in required_aliases)
 
 		# add to list
 		if not domain in domains:
@@ -253,7 +256,7 @@ def add_mail_user(email, pw, privs, env):
 	elif not validate_email(email):
 		return ("Invalid email address.", 400)
 	elif not validate_email(email, mode='user'):
-		return ("User account email addresses may only use the ASCII letters A-Z, the digits 0-9, underscore (_), hyphen (-), and period (.).", 400)
+		return ("User account email addresses may only use the lowercase ASCII letters a-z, the digits 0-9, underscore (_), hyphen (-), and period (.).", 400)
 	elif is_dcv_address(email) and len(get_mail_users(env)) > 0:
 		# Make domain control validation hijacking a little harder to mess up by preventing the usual
 		# addresses used for DCV from being user accounts. Except let it be the first account because
@@ -313,7 +316,7 @@ def add_mail_user(email, pw, privs, env):
 def set_mail_password(email, pw, env):
 	# validate that password is acceptable
 	validate_password(pw)
-	
+
 	# hash the password
 	pw = hash_password(pw)
 
@@ -403,6 +406,10 @@ def add_mail_alias(source, destination, env, update_if_exists=False, do_kick=Tru
 	# convert Unicode domain to IDNA
 	source = sanitize_idn_email_address(source)
 
+	# Our database is case sensitive (oops), which affects mail delivery
+	# (Postfix always queries in lowercase?), so force lowercase.
+	source = source.lower()
+
 	# validate source
 	source = source.strip()
 	if source == "":
@@ -416,7 +423,7 @@ def add_mail_alias(source, destination, env, update_if_exists=False, do_kick=Tru
 	# validate destination
 	dests = []
 	destination = destination.strip()
-	
+
 	# Postfix allows a single @domain.tld as the destination, which means
 	# the local part on the address is preserved in the rewrite. We must
 	# try to convert Unicode to IDNA first before validating that it's a
@@ -486,15 +493,17 @@ def get_required_aliases(env):
 	# These are the aliases that must exist.
 	aliases = set()
 
+	# The system administrator alias is required.
+	aliases.add(get_system_administrator(env))
+
 	# The hostmaster alias is exposed in the DNS SOA for each zone.
 	aliases.add("hostmaster@" + env['PRIMARY_HOSTNAME'])
 
 	# Get a list of domains we serve mail for, except ones for which the only
-	# email on that domain is a postmaster/admin alias to the administrator
-	# or a wildcard alias (since it will forward postmaster/admin).
+	# email on that domain are the required aliases or a catch-all/domain-forwarder.
 	real_mail_domains = get_mail_domains(env,
 		filter_aliases = lambda alias :
-			((not alias[0].startswith("postmaster@") and not alias[0].startswith("admin@"))	or alias[1] != get_system_administrator(env))
+			not alias[0].startswith("postmaster@") and not alias[0].startswith("admin@")
 			and not alias[0].startswith("@")
 			)
 
@@ -511,7 +520,7 @@ def get_required_aliases(env):
 def kick(env, mail_result=None):
 	results = []
 
-	# Inclde the current operation's result in output.
+	# Include the current operation's result in output.
 
 	if mail_result is not None:
 		results.append(mail_result + "\n")
@@ -531,11 +540,11 @@ def kick(env, mail_result=None):
 		for s, t in existing_aliases:
 			if s == source:
 				return
+
 		# Doesn't exist.
 		administrator = get_system_administrator(env)
 		add_mail_alias(source, administrator, env, do_kick=False)
 		results.append("added alias %s (=> %s)\n" % (source, administrator))
-
 
 	for alias in required_aliases:
 		ensure_admin_alias_exists(alias)

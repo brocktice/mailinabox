@@ -41,6 +41,13 @@ source /etc/mailinabox.conf # load global vars
 #   always will.
 # * `ca-certificates`: A trust store used to squelch postfix warnings about
 #   untrusted opportunistically-encrypted connections.
+#
+# postgrey is going to come in via the Mail-in-a-Box PPA, which publishes
+# a modified version of postgrey that lets senders whitelisted by dnswl.org
+# pass through without being greylisted. So please note [dnswl's license terms](https://www.dnswl.org/?page_id=9):
+# > Every user with more than 100’000 queries per day on the public nameserver
+# > infrastructure and every commercial vendor of dnswl.org data (eg through
+# > anti-spam solutions) must register with dnswl.org and purchase a subscription.
 
 apt_install postfix postfix-pcre postgrey ca-certificates
 
@@ -171,8 +178,13 @@ tools/editconf.py /etc/postfix/main.cf \
 
 # Postfix connects to Postgrey on the 127.0.0.1 interface specifically. Ensure that
 # Postgrey listens on the same interface (and not IPv6, for instance).
+# A lot of legit mail servers try to resend before 300 seconds.
+# As a matter of fact RFC is not strict about retry timer so postfix and
+# other MTA have their own intervals. To fix the problem of receiving
+# e-mails really latter, delay of greylisting has been set to
+# 180 seconds (default is 300 seconds).
 tools/editconf.py /etc/default/postgrey \
-	POSTGREY_OPTS=\"--inet=127.0.0.1:10023\"
+	POSTGREY_OPTS=\"'--inet=127.0.0.1:10023 --delay=180'\"
 
 # Increase the message size limit from 10MB to 128MB.
 # The same limit is specified in nginx.conf for mail submitted via webmail and Z-Push.
@@ -187,3 +199,4 @@ ufw_allow submission
 # Restart services
 
 restart_service postfix
+restart_service postgrey

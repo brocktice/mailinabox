@@ -32,15 +32,17 @@ The components installed are:
 * Webmail ([Roundcube](http://roundcube.net/)), static website hosting ([nginx](http://nginx.org/))
 * Spam filtering ([spamassassin](https://spamassassin.apache.org/)), greylisting ([postgrey](http://postgrey.schweikert.ch/))
 * DNS ([nsd4](http://www.nlnetlabs.nl/projects/nsd/)) with [SPF](https://en.wikipedia.org/wiki/Sender_Policy_Framework), DKIM ([OpenDKIM](http://www.opendkim.org/)), [DMARC](https://en.wikipedia.org/wiki/DMARC), [DNSSEC](https://en.wikipedia.org/wiki/DNSSEC), [DANE TLSA](https://en.wikipedia.org/wiki/DNS-based_Authentication_of_Named_Entities), and [SSHFP](https://tools.ietf.org/html/rfc4255) records automatically set
-* Firewall ([ufw](https://launchpad.net/ufw)), intrusion protection ([fail2ban](http://www.fail2ban.org/wiki/index.php/Main_Page))
-* A control panel and API for adding/removing mail users, aliases, custom DNS records, etc. and system monitoring.
+* Firewall ([ufw](https://launchpad.net/ufw)), intrusion protection ([fail2ban](http://www.fail2ban.org/wiki/index.php/Main_Page)), system monitoring ([munin](http://munin-monitoring.org/))
+* A control panel and API for adding/removing mail users, aliases, custom DNS records, etc. and detailed system monitoring.
 
 For more information on how Mail-in-a-Box handles your privacy, see the [security details page](security.md).
 
-Authenticity
+The Security
 ------------
 
-I sign the release tags. To verify that a tag is signed by me, you can perform the following steps:
+See the [security guide](security.md) for more information about the box's security configuration (TLS, password storage, etc).
+
+I sign the release tags on git. To verify that a tag is signed by me, you can perform the following steps:
 
 	# Download my PGP key.
 	$ curl -s https://keybase.io/joshdata/key.asc | gpg --import
@@ -51,7 +53,7 @@ I sign the release tags. To verify that a tag is signed by me, you can perform t
 	$ cd mailinabox
 
 	# Verify the tag.
-	$ git verify-tag v0.08
+	$ git verify-tag v0.10
 	gpg: Signature made ..... using RSA key ID C10BDD81
 	gpg: Good signature from "Joshua Tauberer <jt@occams.info>"
 	gpg: WARNING: This key is not certified with a trusted signature!
@@ -73,4 +75,4 @@ The History
 * In 2007 I wrote a relatively popular Mozilla Thunderbird extension that added client-side SPF and DKIM checks to mail to warn users about possible phishing: [add-on page](https://addons.mozilla.org/en-us/thunderbird/addon/sender-verification-anti-phish/), [source](https://github.com/JoshData/thunderbird-spf).
 * In August 2013 I began Mail-in-a-Box by combining my own mail server configuration with the setup in ["NSA-proof your email in 2 hours"](http://sealedabstract.com/code/nsa-proof-your-e-mail-in-2-hours/) and making the setup steps reproducible with bash scripts.
 * Mail-in-a-Box was a semifinalist in the 2014 [Knight News Challenge](https://www.newschallenge.org/challenge/2014/submissions/mail-in-a-box), but it was not selected as a winner.
-* Mail-in-a-Box hit the front page of Hacker News in [April](https://news.ycombinator.com/item?id=7634514) and [September](https://news.ycombinator.com/item?id=8276171) 2014.
+* Mail-in-a-Box hit the front page of Hacker News in [April](https://news.ycombinator.com/item?id=7634514) 2014, [September](https://news.ycombinator.com/item?id=8276171) 2014, and [May](https://news.ycombinator.com/item?id=9624267) 2015.
