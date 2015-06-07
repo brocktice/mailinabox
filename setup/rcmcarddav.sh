@@ -47,7 +47,7 @@ cat > $CARDDAVCONF <<EOF;
 EOF
 
 # Enable plugin
-sed -ri "s@'vacation_sieve'\)@'vacation_sieve', 'carddav'\)@" $RCMCONFIG
+sed -ri "s@'persistent_login'\)@'persistent_login', 'carddav'\)@" $RCMCONFIG
 
 # Fix permissions.
 chmod -R 644 $CARDDAVDIR
