@@ -384,6 +384,12 @@ def backup_status():
 	from backup import backup_status
 	return json_response(backup_status(env))
 
+@app.route('/system/backup/adds3')
+@authorized_personnel_only
+def backup_adds3():
+        from backup import backup_adds3
+        return json_response(backup_adds3(env))
+
 # MUNIN
 
 @app.route('/munin/')
