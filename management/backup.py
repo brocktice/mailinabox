@@ -132,6 +132,7 @@ def perform_backup(full_backup):
 	backup_root = os.path.join(env["STORAGE_ROOT"], 'backup')
 	backup_cache_dir = os.path.join(backup_root, 'cache')
 	backup_dir = os.path.join(backup_root, 'encrypted')
+        backup_url = "file://" + backup_dir
 
 	# In an older version of this script, duplicity was called
 	# such that it did not encrypt the backups it created (in
@@ -192,7 +193,7 @@ def perform_backup(full_backup):
 			"--volsize", "250",
 			"--gpg-options", "--cipher-algo=AES256",
 			env["STORAGE_ROOT"],
-			"file://" + backup_dir,
+			backup_url,
                         "--allow-source-mismatch"
 			],
 			env_with_passphrase)
@@ -213,7 +214,7 @@ def perform_backup(full_backup):
 		"%dD" % keep_backups_for_days,
 		"--archive-dir", backup_cache_dir,
 		"--force",
-		"file://" + backup_dir
+		backup_url
 		],
 		env_with_passphrase)
 
@@ -227,7 +228,7 @@ def perform_backup(full_backup):
 		"cleanup",
 		"--archive-dir", backup_cache_dir,
 		"--force",
-		"file://" + backup_dir
+		backup_url
 		],
 		env_with_passphrase)
 
@@ -264,7 +265,7 @@ def run_duplicity_verification():
 		"--compare-data",
 		"--archive-dir", backup_cache_dir,
 		"--exclude", backup_root,
-		"file://" + backup_dir,
+		backup_url,
 		env["STORAGE_ROOT"],
 	], env_with_passphrase)
 
