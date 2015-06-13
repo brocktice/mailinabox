@@ -13,6 +13,39 @@
 
 <p>You can also use SFTP (FTP over SSH) to copy files from <tt id="backup-location"></tt>. These files are encrypted, so they are safe to store anywhere. Copy the encryption password from <tt id="backup-encpassword-file"></tt> also but keep it in a safe location.</p>
 
+<h3>Remote Backups</h3>
+
+<p>Optionally, you can configure the box to upload backups to Amazon's Simple Storage Service (s3) rather than storing them locally. If you'll be storing a lot of data, this is probably preferable to the local backups, as they more than double the amount of disk space needed.</p>
+
+<p>Instructions for setting up an s3 account/bucket go here.</p>
+
+<form class="form-horizontal" role="form" onsubmit="do_set_s3_backup(); return false;">
+  <div class="form-group">
+    <label for="addS3Id" class="col-sm-1 control-label">S3&nbsp;Id</label>
+    <div class="col-sm-10">
+      <textarea class="form-control" rows="1" id="addS3Id"></textarea>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="addS3Key" class="col-sm-1 control-label">S3&nbsp;Key</label>
+    <div class="col-sm-10">
+      <textarea class="form-control" rows="1" id="addS3Key"></textarea>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="addS3Bucket" class="col-sm-1 control-label">S3&nbsp;Bucket</label>
+    <div class="col-sm-10">
+      <textarea class="form-control" rows="1" id="addS3Bucket"></textarea>
+    </div>
+  </div>
+  <div class="form-group">
+    <div class="col-sm-offset-1 col-sm-11">
+      <button id="set-s3-backup-button" type="submit" class="btn btn-primary">Update S3 Backup</button>
+      <button id="alias-cancel" class="btn btn-default hidden" onclick="aliases_reset_form(); return false;">Cancel</button>
+    </div>
+  </div>
+</form>
+
 <h3>Current Backups</h3>
 
 <p>The backup directory currently contains the backups listed below. The total size on disk of the backups is currently <span id="backup-total-size"></span>.</p>
@@ -82,5 +115,98 @@ function show_system_backup() {
 
       $('#backup-total-size').text(nice_size(total_disk_size));
     })
+}
+
+function s3_reset_form() {
+  $("#addaliasEmail").prop('disabled', false);
+  $("#addaliasEmail").val('')
+  $("#addaliasTargets").val('')
+  $('#alias-cancel').addClass('hidden');
+  $('#add-alias-button').text('Add Alias');
+  is_alias_add_update = false;
+}
+
+function show_s3() {
+  $('#alias_table tbody').html("<tr><td colspan='2' class='text-muted'>Loading...</td></tr>")
+  api(
+    "/mail/aliases",
+    "GET",
+    { format: 'json' },
+    function(r) {
+      $('#alias_table tbody').html("");
+      for (var i = 0; i < r.length; i++) {
+        var hdr = $("<tr><td colspan='3'><h4/></td></tr>");
+        hdr.find('h4').text(r[i].domain);
+        $('#alias_table tbody').append(hdr);
+
+        for (var k = 0; k < r[i].aliases.length; k++) {
+          var alias = r[i].aliases[k];
+
+          var n = $("#alias-template").clone();
+          n.attr('id', '');
+
+          if (alias.required) n.addClass('alias-required');
+          n.attr('data-email', alias.source_display); // this is decoded from IDNA, but will get re-coded to IDNA on the backend
+          n.find('td.email').text(alias.source_display)
+          for (var j = 0; j < alias.destination.length; j++)
+            n.find('td.target').append($("<div></div>").text(alias.destination[j]))
+          $('#alias_table tbody').append(n);
+        }
+      }
+    })
+
+  $(function() {
+    $('#alias_type_buttons button').off('click').click(function() {
+      $('#alias_type_buttons button').removeClass('active');
+      $(this).addClass('active');
+      if ($(this).attr('data-mode') == "regular") {
+        $('#addaliasEmail').attr('type', 'email');
+        $('#addaliasEmail').attr('placeholder', 'incoming email address (e.g. you@yourdomain.com)');
+	$('#addaliasTargets').attr('placeholder', 'forward to these email addresses (one per line or separated by commas)');
+        $('#alias_mode_info').slideUp();
+      } else if ($(this).attr('data-mode') == "catchall") {
+        $('#addaliasEmail').attr('type', 'text');
+        $('#addaliasEmail').attr('placeholder', 'incoming catch-all address (e.g. @yourdomain.com)');
+	$('#addaliasTargets').attr('placeholder', 'forward to these email addresses (one per line or separated by commas)');
+        $('#alias_mode_info').slideDown();
+        $('#alias_mode_info span').addClass('hidden');
+        $('#alias_mode_info span.catchall').removeClass('hidden');
+      } else if ($(this).attr('data-mode') == "domainalias") {
+        $('#addaliasEmail').attr('type', 'text');
+        $('#addaliasEmail').attr('placeholder', 'incoming domain (@yourdomain.com)');
+        $('#addaliasTargets').attr('placeholder', 'forward to domain (@yourdomain.com)');
+        $('#alias_mode_info').slideDown();
+        $('#alias_mode_info span').addClass('hidden');
+        $('#alias_mode_info span.domainalias').removeClass('hidden');
+      }
+    })
+    $('#alias_type_buttons button[data-mode="regular"]').click(); // init
+  })
+}
+
+
+function do_set_s3_backup()
+{
+  var s3id = $("#addS3Id").val();
+  var s3key = $("#addS3Key").val();
+  var s3bucket = $("#addS3Bucket").val();
+  api(
+    "/system/backup/adds3",
+    "POST",
+    {
+      s3id: s3id,
+      s3key: s3key,
+      s3bucket: s3bucket
+    },
+    function(r) {
+      // Responses are multiple lines of pre-formatted text.
+      show_modal_error(title, $("<pre/>").text(r));
+      show_s3()
+      s3_reset_form();
+    },
+    function(r) {
+      show_modal_error(title, r);
+    });
+  return false;
 }
 </script>
