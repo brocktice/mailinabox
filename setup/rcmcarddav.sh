@@ -11,7 +11,7 @@ CARDDAVGIT=https://github.com/blind-coder/rcmcarddav.git
 RCMCONFIG=/usr/local/lib/roundcubemail/config/config.inc.php
 CURRDIR=`pwd`
 # ### Clone
-git_clone $CARDDAVGIT master '' $CARDDAVDIR
+git_clone $CARDDAVGIT issue_96 '' $CARDDAVDIR
 
 # ### Install composer
 
