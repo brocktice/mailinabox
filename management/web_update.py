@@ -67,7 +67,7 @@ def do_web_update(env):
 	template0 = open(os.path.join(os.path.dirname(__file__), "../conf/nginx.conf")).read()
 	template1 = open(os.path.join(os.path.dirname(__file__), "../conf/nginx-alldomains.conf")).read()
 	template2 = open(os.path.join(os.path.dirname(__file__), "../conf/nginx-primaryonly.conf")).read()
-	template3 = "\trewrite / https://$REDIRECT_DOMAIN permanent;\n"
+	template3 = "\trewrite ^(.*) https://$REDIRECT_DOMAIN$1 permanent;\n"
 
 	# Add the PRIMARY_HOST configuration first so it becomes nginx's default server.
 	nginx_conf += make_domain_config(env['PRIMARY_HOSTNAME'], [template0, template1, template2], env)
@@ -201,14 +201,14 @@ def get_domain_ssl_files(domain, env, allow_shared_cert=True):
 		# the user has uploaded a different private key for this domain.
 		if not ssl_key_is_alt and allow_shared_cert:
 			from status_checks import check_certificate
-			if check_certificate(domain, ssl_certificate_primary, None)[0] == "OK":
+			if check_certificate(domain, ssl_certificate_primary, None, just_check_domain=True)[0] == "OK":
 				ssl_certificate = ssl_certificate_primary
 				ssl_via = "Using multi/wildcard certificate of %s." % env['PRIMARY_HOSTNAME']
 
 			# For a 'www.' domain, see if we can reuse the cert of the parent.
 			elif domain.startswith('www.'):
 				ssl_certificate_parent = os.path.join(env["STORAGE_ROOT"], 'ssl/%s/ssl_certificate.pem' % safe_domain_name(domain[4:]))
-				if os.path.exists(ssl_certificate_parent) and check_certificate(domain, ssl_certificate_parent, None)[0] == "OK":
+				if os.path.exists(ssl_certificate_parent) and check_certificate(domain, ssl_certificate_parent, None, just_check_domain=True)[0] == "OK":
 					ssl_certificate = ssl_certificate_parent
 					ssl_via = "Using multi/wildcard certificate of %s." % domain[4:]
 
@@ -254,7 +254,7 @@ def create_csr(domain, ssl_key, env):
                 "-subj", "/C=%s/ST=/L=/O=/CN=%s" % (env["CSR_COUNTRY"], domain)])
 
 def install_cert(domain, ssl_cert, ssl_chain, env):
-	if domain not in get_web_domains(env):
+	if domain not in get_web_domains(env) + get_default_www_redirects(env):
 		return "Invalid domain name."
 
 	# Write the combined cert+chain to a temporary path and validate that it is OK.

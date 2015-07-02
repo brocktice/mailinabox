@@ -13,7 +13,7 @@ if [ -z "$NONINTERACTIVE" ]; then
 	fi
 
 	# email_validator is repeated in setup/management.sh
-	hide_output pip3 install "email_validator==0.1.0-rc5" || exit 1
+	hide_output pip3 install email_validator || exit 1
 
 	message_box "Mail-in-a-Box Installation" \
 		"Hello and thanks for deploying a Mail-in-a-Box!
@@ -196,3 +196,48 @@ if [ -z "$CSR_COUNTRY" ]; then
 		exit
 	fi
 fi
+
+# Automatic configuration, e.g. as used in our Vagrant configuration.
+if [ "$PUBLIC_IP" = "auto" ]; then
+	# Use a public API to get our public IP address, or fall back to local network configuration.
+	PUBLIC_IP=$(get_publicip_from_web_service 4 || get_default_privateip 4)
+fi
+if [ "$PUBLIC_IPV6" = "auto" ]; then
+	# Use a public API to get our public IPv6 address, or fall back to local network configuration.
+	PUBLIC_IPV6=$(get_publicip_from_web_service 6 || get_default_privateip 6)
+fi
+if [ "$PRIMARY_HOSTNAME" = "auto" ]; then
+	# Use reverse DNS to get this machine's hostname. Install bind9-host early.
+	hide_output apt-get -y install bind9-host
+	PRIMARY_HOSTNAME=$(get_default_hostname)
+elif [ "$PRIMARY_HOSTNAME" = "auto-easy" ]; then
+	# Generate a probably-unique subdomain under our justtesting.email domain.
+	PRIMARY_HOSTNAME=`echo $PUBLIC_IP | sha1sum | cut -c1-5`.justtesting.email
+fi
+
+# Set STORAGE_USER and STORAGE_ROOT to default values (user-data and /home/user-data), unless
+# we've already got those values from a previous run.
+if [ -z "$STORAGE_USER" ]; then
+	STORAGE_USER=$([[ -z "$DEFAULT_STORAGE_USER" ]] && echo "user-data" || echo "$DEFAULT_STORAGE_USER")
+fi
+if [ -z "$STORAGE_ROOT" ]; then
+	STORAGE_ROOT=$([[ -z "$DEFAULT_STORAGE_ROOT" ]] && echo "/home/$STORAGE_USER" || echo "$DEFAULT_STORAGE_ROOT")
+fi
+
+# Show the configuration, since the user may have not entered it manually.
+echo
+echo "Primary Hostname: $PRIMARY_HOSTNAME"
+echo "Public IP Address: $PUBLIC_IP"
+if [ ! -z "$PUBLIC_IPV6" ]; then
+	echo "Public IPv6 Address: $PUBLIC_IPV6"
+fi
+if [ "$PRIVATE_IP" != "$PUBLIC_IP" ]; then
+	echo "Private IP Address: $PRIVATE_IP"
+fi
+if [ "$PRIVATE_IPV6" != "$PUBLIC_IPV6" ]; then
+	echo "Private IPv6 Address: $PRIVATE_IPV6"
+fi
+if [ -f /usr/bin/git ] && [ -d .git ]; then
+	echo "Mail-in-a-Box Version: " $(git describe)
+fi
+echo

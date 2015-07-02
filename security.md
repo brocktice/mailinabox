@@ -69,17 +69,27 @@ If DNSSEC is enabled at the box's domain name's registrar, the SSHFP record that
 Outbound Mail
 -------------
 
-### Domain Policy Records
+The basic protocols of email delivery did not plan for the presence of adversaries on the network. For a number of reasons it is not possible in most cases to guarantee that a connection to a recipient server is secure.
 
-Domain policy records allow recipient MTAs to detect when the _domain_ part of incoming mail has been spoofed. All outbound mail is signed with [DKIM](https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail) and "quarantine" [DMARC](https://en.wikipedia.org/wiki/DMARC) records are automatically set in DNS. Receiving MTAs that implement DMARC will automatically quarantine mail that is "From:" a domain hosted by the box but which was not sent by the box. (Strong [SPF](https://en.wikipedia.org/wiki/Sender_Policy_Framework) records are also automatically set in DNS.) ([source](management/dns_update.py))
+### DNSSEC
+
+The first step in resolving the destination server for an email address is performing a DNS look-up for the MX record of the domain name. The box uses a locally-running [DNSSEC](https://en.wikipedia.org/wiki/DNSSEC)-aware nameserver to perform the lookup. If the domain name has DNSSEC enabled, DNSSEC guards against DNS records being tampered with.
 
 ### Encryption
 
-The basic protocols of email delivery did not plan for the need for encryption. For a number of reasons it is not possible in most cases to guarantee that a connection to a recipient server is secure. However, the box --- along with the vast majority of mail servers --- uses [opportunistic encryption](https://en.wikipedia.org/wiki/Opportunistic_encryption), meaning the mail is encrypted in transit and protected from passive eavesdropping, but it is not protected from an active man-in-the-middle attack. Modern encryption settings will be used to the extent the recipient server supports them. ([source](setup/mail-postfix.sh))
+The box (along with the vast majority of mail servers) uses [opportunistic encryption](https://en.wikipedia.org/wiki/Opportunistic_encryption), meaning the mail is encrypted in transit and protected from passive eavesdropping, but it is not protected from an active man-in-the-middle attack. Modern encryption settings will be used to the extent the recipient server supports them. ([source](setup/mail-postfix.sh))
 
 ### DANE
 
-The box is [DNSSEC](https://en.wikipedia.org/wiki/DNSSEC)-aware (via a locally running DNSSEC-aware nameserver). When sending outbound mail, if the recipient's domain name supports DNSSEC and has published a [DANE TLSA](https://en.wikipedia.org/wiki/DNS-based_Authentication_of_Named_Entities) record, which contains a certificate fingerprint, the receiving MTA (server) must support TLS and its certificate must match the fingerprint. In other words, when a DANE TLSA record is published by the recipient, then on-the-wire encryption is forced between the box and the recipient MTA. ([source](setup/mail-postfix.sh))
+If the recipient's domain name supports DNSSEC and has published a [DANE TLSA](https://en.wikipedia.org/wiki/DNS-based_Authentication_of_Named_Entities) record, then on-the-wire encryption is forced between the box and the recipient MTA and this encryption is not subject to a man-in-the-middle attack. The TLSA record contains a certificate fingerprint which the receiving MTA (server) must present to the box. ([source](setup/mail-postfix.sh))
+
+### Domain Policy Records
+
+Domain policy records allow recipient MTAs to detect when the _domain_ part of of the sender address in incoming mail has been spoofed. All outbound mail is signed with [DKIM](https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail) and "quarantine" [DMARC](https://en.wikipedia.org/wiki/DMARC) records are automatically set in DNS. Receiving MTAs that implement DMARC will automatically quarantine mail that is "From:" a domain hosted by the box but which was not sent by the box. (Strong [SPF](https://en.wikipedia.org/wiki/Sender_Policy_Framework) records are also automatically set in DNS.) ([source](management/dns_update.py))
+
+### User Policy
+
+While domain policy records prevent other servers from sending mail with a "From:" header that matches a domain hosted on the box (see above), those policy records do not guarnatee that the user portion of the sender email address matches the actual sender. In enterprise environments where the box may host the mail of untrusted users, it is important to guard against users impersonating other users. The box restricts the envelope sender address that users may put into outbound mail to either a) their own email address (their SMTP login username) or b) any alias that they are listed as a direct recipient of. Note that the envelope sender address is not the same as the "From:" header.
 
 Incoming Mail
 -------------

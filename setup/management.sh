@@ -2,8 +2,10 @@
 
 source setup/functions.sh
 
-apt_install python3-flask links duplicity libyaml-dev python3-dnspython python3-dateutil
-hide_output pip3 install rtyaml "email_validator==0.1.0-rc5"
+# build-essential libssl-dev libffi-dev python3-dev: Required to pip install cryptography.
+apt_install python3-flask links duplicity libyaml-dev python3-dnspython python3-dateutil \
+	build-essential libssl-dev libffi-dev python3-dev
+hide_output pip3 install rtyaml email_validator idna cryptography
 	# email_validator is repeated in setup/questions.sh
 
 # Create a backup directory and a random key for encrypting backups.
@@ -42,8 +44,5 @@ EOF
 chmod +x /etc/cron.daily/mailinabox-statuschecks
 
 
-# Start it. Remove the api key file first so that start.sh
-# can wait for it to be created to know that the management
-# server is ready.
-rm -f /var/lib/mailinabox/api.key
+# Start it.
 restart_service mailinabox

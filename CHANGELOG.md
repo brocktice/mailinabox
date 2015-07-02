@@ -1,23 +1,41 @@
 CHANGELOG
 =========
 
-In Development
---------------
+v0.11 (June 29, 2015)
+---------------------
+
+Advisories:
+* Users can no longer spoof arbitrary email addresses in outbound mail. When sending mail, the email address configured in your mail client must match the SMTP login username being used, or the email address must be an alias with the SMTP login username listed as one of the alias's targets.
+* This update replaces your DKIM signing key with a stronger key. Because of DNS caching/propagation, mail sent within a few hours after this update could be marked as spam by recipients. If you use External DNS, you will need to update your DNS records.
+* The box will now install software from a new Mail-in-a-Box PPA on Launchpad.net, where we are distributing two of our own packages: a patched postgrey and dovecot-lucene.
 
 Mail:
 * Greylisting will now let some reputable senders pass through immediately.
 * Searching mail (via IMAP) will now be much faster using the dovecot lucene full text search plugin.
+* Users can no longer spoof arbitrary email addresses in outbound mail (see above).
 * Fix for deleting admin@ and postmaster@ addresses.
+* Roundcube is updated to version 1.1.2, plugins updated.
+* Exchange/ActiveSync autoconfiguration was not working on all devices (e.g. iPhone) because of a case-sensitive URL.
+* The DKIM signing key has been increased to 2048 bits, from 1024, replacing the existing key.
 
 Web:
 * 'www' subdomains now automatically redirect to their parent domain (but you'll need to install an SSL certificate).
 * OCSP no longer uses Google Public DNS.
+* The installed PHP version is no longer exposed through HTTP response headers, for better security.
+
+DNS:
+* Default IPv6 AAAA records were missing since version 0.09.
 
 Control panel:
 * Resetting a user's password now forces them to log in again everywhere.
+* Status checks were not working if an ssh server was not installed.
+* SSL certificate validation now uses the Python cryptography module in some places where openssl was used.
+* There is a new tab to show the installed version of Mail-in-a-Box and to fetch the latest released version.
 
 System:
 * The munin system monitoring tool is now installed and accessible at /admin/munin.
+* ownCloud updated to version 8.0.4. The ownCloud installation step now is reslient to download problems. The ownCloud configuration file is now stored in STORAGE_ROOT to fix loss of data when moving STORAGE_ROOT to a new machine.
+* The setup scripts now run `apt-get update` prior to installing anything to ensure the apt database is in sync with the packages actually available.
 
 
 v0.10 (June 1, 2015)
