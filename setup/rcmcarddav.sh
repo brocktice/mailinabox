@@ -7,7 +7,7 @@ source /etc/mailinabox.conf # load global vars
 RCMPLUGINDIR=/usr/local/lib/roundcubemail/plugins/
 CARDDAVDIR=${RCMPLUGINDIR}/carddav/
 CARDDAVCONF=${CARDDAVDIR}/config.inc.php
-CARDDAVGIT=https://github.com/brocktice/rcmcarddav.git
+CARDDAVGIT=https://github.com/blind-coder/rcmcarddav.git
 RCMCONFIG=/usr/local/lib/roundcubemail/config/config.inc.php
 CURRDIR=`pwd`
 # ### Clone
